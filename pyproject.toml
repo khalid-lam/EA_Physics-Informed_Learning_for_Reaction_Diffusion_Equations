@@ -1,0 +1,12 @@
+[project]
+name = "ea-physics-informed-learning-for-reaction-diffusion-equations"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dataclasses>=0.8",
+    "matplotlib>=3.10.8",
+    "torch>=2.10.0",
+    "tqdm>=4.67.3",
+]

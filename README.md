@@ -58,8 +58,5 @@ EA_Physics-Informed_Learning_for_Reaction_Diffusion_Equations/
 ├── scripts/
 │   └── run_experiment.py
 │
-├── notebooks/
-│   └── visualization.ipynb
-│
-└── tests/
-    └── test_operators.py
+└── notebooks/
+    └── visualization.ipynb
