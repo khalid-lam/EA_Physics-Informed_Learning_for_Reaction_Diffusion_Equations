@@ -68,3 +68,17 @@ class FisherKPPStationaryEquation:
         D = torch.as_tensor(self.D, dtype=u.dtype, device=u.device)
         r = torch.as_tensor(self.r, dtype=u.dtype, device=u.device)
         return -D * lap_u - r * u * (1.0 - u)
+
+    def energy_density(self, x: torch.Tensor, u: torch.Tensor, grad_u: torch.Tensor) -> torch.Tensor:
+        """
+        Energy density whose Euler–Lagrange equation is:
+            -D Δu - r u(1-u) = 0
+
+        e(x) = (D/2)*|∇u|^2 - r*(u^2/2 - u^3/3)
+        """
+        D = torch.as_tensor(self.D, dtype=u.dtype, device=u.device)
+        r = torch.as_tensor(self.r, dtype=u.dtype, device=u.device)
+
+        grad_sq = torch.sum(grad_u ** 2, dim=1, keepdim=True)
+        potential = (u ** 2) / 2.0 - (u ** 3) / 3.0
+        return 0.5 * D * grad_sq - r * potential
