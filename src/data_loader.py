@@ -18,6 +18,40 @@ class Dataset:
     x: torch.Tensor
     u: torch.Tensor
 
+def train_val_split(
+    dataset: Dataset,
+    val_ratio: float = 0.2,
+    *,
+    shuffle: bool = True,
+    seed: int = 0,
+) -> tuple[Dataset, Dataset]:
+    """
+    Split dataset into train/val subsets.
+
+    Parameters
+    ----------
+    val_ratio : float
+        Fraction in [0,1).
+    shuffle : bool
+        Whether to shuffle before splitting.
+    seed : int
+        Seed for reproducibility when shuffle=True.
+    """
+    x, u = dataset.x, dataset.u
+    N = x.shape[0]
+    n_val = int(val_ratio * N)
+    n_train = N - n_val
+
+    if shuffle:
+        g = torch.Generator(device=x.device)
+        g.manual_seed(seed)
+        perm = torch.randperm(N, generator=g, device=x.device)
+        x = x[perm]
+        u = u[perm]
+
+    train = Dataset(x=x[:n_train], u=u[:n_train])
+    val = Dataset(x=x[n_train:], u=u[n_train:])
+    return train, val
 
 def ensure_column(u: torch.Tensor) -> torch.Tensor:
     """
