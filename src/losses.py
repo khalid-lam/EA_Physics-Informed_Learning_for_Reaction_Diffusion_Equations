@@ -61,33 +61,100 @@ def dirichlet_bc_loss(model, x_boundary: torch.Tensor, u_boundary: torch.Tensor)
     pred = model(x_boundary)
     return mse(pred - u_boundary)
 
+def data_loss(model, x_data: torch.Tensor, u_data: torch.Tensor) -> torch.Tensor:
+    """
+    Data mismatch loss:
+        L_data = mean( (u(x_data) - u_data)^2 )
+    """
+    if u_data.ndim == 1:
+        u_data = u_data.unsqueeze(1)
+    pred = model(x_data)
+    return mse(pred - u_data)
+
+def l2_regularization(model) -> torch.Tensor:
+    """
+    L2 weight decay regularization: sum(||theta||^2) / n_params
+    (normalized so the scale is not crazy).
+    """
+    s = torch.tensor(0.0)
+    n = 0
+    for p in model.parameters():
+        if p.requires_grad:
+            s = s + torch.sum(p ** 2)
+            n += p.numel()
+    if n == 0:
+        return torch.tensor(0.0)
+    return s / float(n)
 
 def total_loss(
     model,
     equation,
-    x_interior: torch.Tensor,
+    x_interior: torch.Tensor | None = None,
     x_boundary: torch.Tensor | None = None,
     u_boundary: torch.Tensor | None = None,
+    x_data: torch.Tensor | None = None,
+    u_data: torch.Tensor | None = None,
+    *,
+    use_energy: bool = False,
     w_pde: float = 1.0,
     w_bc: float = 1.0,
-    use_energy: bool = False,
-) -> torch.Tensor:
+    w_data: float = 1.0,
+    w_reg: float = 0.0,
+) -> tuple[torch.Tensor, dict]:
     """
-    Total training loss aggregator.
+    Total loss with up to 4 weighted terms:
+        L = w_pde*L_pde + w_bc*L_bc + w_data*L_data + w_reg*L_reg
 
-    If use_energy=True, uses poisson_energy_loss instead of pde_residual_loss.
-
-    Notes
-    -----
-    - For Fisher–KPP, use_energy should remain False (unless you add a variational form later).
+    Returns
+    -------
+    total : scalar tensor
+    parts : dict with each term (for logging)
     """
-    if use_energy:
-        lpde = poisson_energy_loss(model, equation, x_interior)
+    parts = {}
+
+    total = torch.tensor(0.0)
+    # Keep device/dtype consistent if possible
+    ref = None
+    for t in [x_interior, x_boundary, x_data]:
+        if t is not None:
+            ref = t
+            break
+    if ref is not None:
+        total = total.to(device=ref.device, dtype=ref.dtype)
+
+    # PDE / energy term
+    if x_interior is not None:
+        if use_energy:
+            lpde = energy_loss(model, equation, x_interior)
+        else:
+            lpde = pde_residual_loss(model, equation, x_interior)
     else:
-        lpde = pde_residual_loss(model, equation, x_interior)
+        lpde = total * 0.0
+    parts["pde"] = lpde
+    total = total + w_pde * lpde
 
-    if x_boundary is None or u_boundary is None:
-        return w_pde * lpde
+    # BC term
+    if x_boundary is not None and u_boundary is not None:
+        lbc = dirichlet_bc_loss(model, x_boundary, u_boundary)
+    else:
+        lbc = total * 0.0
+    parts["bc"] = lbc
+    total = total + w_bc * lbc
 
-    lbc = dirichlet_bc_loss(model, x_boundary, u_boundary)
-    return w_pde * lpde + w_bc * lbc
+    # Data term
+    if x_data is not None and u_data is not None:
+        ldata = data_loss(model, x_data, u_data)
+    else:
+        ldata = total * 0.0
+    parts["data"] = ldata
+    total = total + w_data * ldata
+
+    # Regularization
+    if w_reg != 0.0:
+        lreg = l2_regularization(model).to(device=total.device, dtype=total.dtype)
+    else:
+        lreg = total * 0.0
+    parts["reg"] = lreg
+    total = total + w_reg * lreg
+
+    return total, parts
