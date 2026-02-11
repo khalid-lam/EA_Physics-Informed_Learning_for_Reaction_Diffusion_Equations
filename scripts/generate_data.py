@@ -1,7 +1,10 @@
 import numpy as np
+import torch
 import scipy.sparse as sp
 import scipy.sparse.linalg as splin
 import matplotlib.pyplot as plt
+from pathlib import Path
+
 
 class Logistic_solver:
     def __init__(self,viscosity,resources,size_x,size_y):
@@ -165,13 +168,50 @@ if __name__ == "__main__":
 
     theta = solver.solve_logistic()
 
-    x_grid,y_grid = np.meshgrid(np.linspace(-0.5,0.5,size_y,endpoint=False),
-                            np.linspace(-0.5,0.5,size_x,endpoint=False))
-    z_min = np.min(theta)
-    z_max = np.max(theta)
+    # Build grid once 
+    x_grid, y_grid = np.meshgrid(
+        np.linspace(-0.5, 0.5, size_y, endpoint=False),
+        np.linspace(-0.5, 0.5, size_x, endpoint=False),
+    )
 
     fig = plt.figure(figsize=(15,12))
-    #fig.suptitle('QuadraticCenteredResources')
     ax = fig.add_subplot(projection='3d')
-    ax.plot_surface(x_grid,y_grid,theta.reshape(size_x,size_y))
-    plt.show()
+    ax.plot_surface(x_grid, y_grid, theta.reshape(size_x, size_y))
+
+
+    X = np.stack([x_grid.reshape(-1), y_grid.reshape(-1)], axis=1)
+    U = theta.reshape(-1, 1)
+
+    ROOT = Path(__file__).resolve().parents[1]   # repo root (.. from scripts/)
+    out_dir = ROOT / "data"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    tag = f"mu{mu:.3f}_sx{size_x}_sy{size_y}_coef{coef_resources:.3f}"
+    base = out_dir / f"logistic_{tag}"
+
+    plt.savefig(str(base) + ".png", dpi=200)
+    plt.close()
+
+    np.savez(
+        str(base) + ".npz",
+        x=X,
+        u=U,
+        resources=resources.reshape(-1, 1),
+        size_x=size_x,
+        size_y=size_y,
+        mu=mu,
+        coef_resources=coef_resources,
+    )
+
+    torch.save(
+        {
+            "x": torch.tensor(X, dtype=torch.float32),
+            "u": torch.tensor(U, dtype=torch.float32),
+            "resources": torch.tensor(resources.reshape(-1, 1), dtype=torch.float32),
+            "size_x": size_x,
+            "size_y": size_y,
+            "mu": mu,
+            "coef_resources": coef_resources,
+        },
+        str(base) + ".pt",
+    )

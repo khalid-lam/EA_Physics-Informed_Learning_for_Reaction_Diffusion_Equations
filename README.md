@@ -44,11 +44,15 @@ EA_Physics-Informed_Learning_for_Reaction_Diffusion_Equations/
 ├── README.md
 ├── requirements.txt
 │
+├── data/
+│   ├── ? 
+│   └── ?
+│
 ├── src/
 │   ├── __init__.py
+│   ├── data.py
 │   ├── equations_test.py
 │   ├── equations.py
-│   ├── generate_data.py
 │   ├── losses.py
 │   ├── metrics.py
 │   ├── models.py
@@ -57,6 +61,7 @@ EA_Physics-Informed_Learning_for_Reaction_Diffusion_Equations/
 │   └── solvers.py
 │
 ├── scripts/
+│   ├── generate_data.py
 │   └── run_experiment.py
 │
 └── notebooks/
