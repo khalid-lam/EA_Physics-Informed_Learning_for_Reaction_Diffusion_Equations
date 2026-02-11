@@ -46,6 +46,7 @@ EA_Physics-Informed_Learning_for_Reaction_Diffusion_Equations/
 │
 ├── src/
 │   ├── __init__.py
+│   ├── equations_test.py
 │   ├── equations.py
 │   ├── generate_data.py
 │   ├── losses.py
