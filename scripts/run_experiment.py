@@ -31,34 +31,67 @@ def main():
     equation_name = "fisher"  # "poisson" or "fisher"
     model_name = "mlp"        # "mlp" or "fourier"
 
-    # Training weights (PDE + BC only for now in this script)
+    # ===============================
+    # Loss weights
+    # ===============================
     use_energy = False
-    w_pde = 1.0
-    w_bc = 1.0
+    w_pde = 1.0               # PDE residual weight
+    w_bc = 1.0                # Boundary condition weight
+    w_data = 0.5              # Data fitting weight
+    w_reg = 0.01              # L2 regularization weight
+    
+    # ===============================
+    # Data configuration
+    # ===============================
+    n_data_points = 200       # EXPLICIT: how many data points to use
+    use_noisy_data = True     # Add noise to data?
+    noise_level = 0.05        # Noise std (% of range)
+    
+    # ===============================
+    # Collocation point configuration
+    # ===============================
+    n_interior = 5000         # Interior collocation points
+    n_boundary = 1000         # Boundary collocation points
 
+    # ===============================
+    # Training configuration
+    # ===============================
     lr = 1e-3
     steps = 2000
     print_every = 200
 
-    # Collocation sizes
-    n_interior = 5000
-    n_boundary = 1000
-
     # -------------------------
-    # Load data (supervised)
+    # Load and prepare data
     # -------------------------
     ds, info = load_torch_dataset(data_path, normalize_to_unit=normalize_to_unit)
     ds = type(ds)(x=ds.x.to(device=device, dtype=dtype), u=ds.u.to(device=device, dtype=dtype))
 
     train_ds, val_ds = train_val_split(ds, val_ratio=0.2, shuffle=True, seed=0)
 
-    print("=== Data loaded ===")
-    print("Path:", data_path)
-    print("Normalized:", info["normalized"])
-    print("Train size:", train_ds.x.shape[0], "Val size:", val_ds.x.shape[0])
+    print("=== Data Loaded ===")
+    print(f"Total points: {ds.x.shape[0]}")
+    print(f"Training pool: {train_ds.x.shape[0]} | Validation pool: {val_ds.x.shape[0]}")
+
+    # Select data points
+    n_data_points = min(n_data_points, train_ds.x.shape[0])
+    x_data = train_ds.x[:n_data_points]
+    u_data = train_ds.u[:n_data_points].clone()
+    
+    # Add noise
+    if use_noisy_data:
+        u_range = u_data.max() - u_data.min()
+        noise = torch.randn_like(u_data) * noise_level * u_range
+        u_data = u_data + noise
+        print(f"Noise added: σ = {(noise_level * u_range):.6f}")
+    
+    print("\n=== Configuration Summary ===")
+    print(f"Data points (noisy):     {n_data_points}")
+    print(f"Interior collocation:    {n_interior}")
+    print(f"Boundary collocation:    {n_boundary}")
+    print(f"Validation points:       {val_ds.x.shape[0]} (clean)")
+    print(f"Data/Collocation ratio:  {n_data_points / (n_interior + n_boundary):.1%}")
 
     # Domain bounds for sampling:
-    # If normalize_to_unit=True, we assume [0,1]^d, else assume min/max from data.
     d = train_ds.x.shape[1]
     if normalize_to_unit:
         low, high = 0.0, 1.0
@@ -69,13 +102,10 @@ def main():
     # -------------------------
     # Sample collocation points
     # -------------------------
-    # (Your sampling module currently assumes [0,1]^d.
-    #  So here we sample in [0,1]^d and rescale if needed.)
     x_in = sample_uniform_interior(n_interior, d, device=device, dtype=dtype)
     x_b = sample_uniform_boundary(n_boundary, d, device=device, dtype=dtype)
 
     if not normalize_to_unit:
-        # Map [0,1] -> [low, high]
         x_in = low + (high - low) * x_in
         x_b = low + (high - low) * x_b
 
@@ -83,7 +113,6 @@ def main():
     # Define equation
     # -------------------------
     if equation_name == "poisson":
-        # Example: constant forcing f=1 (you will adapt to your experiments)
         f = lambda x: torch.ones(x.shape[0], 1, device=x.device, dtype=x.dtype)
         equation = PoissonEquation(f=f)
     elif equation_name == "fisher":
@@ -120,9 +149,13 @@ def main():
         x_in,
         x_boundary=x_b,
         u_boundary=u_b,
+        x_data=x_data,
+        u_data=u_data,
         use_energy=use_energy,
         w_pde=w_pde,
         w_bc=w_bc,
+        w_data=w_data,
+        w_reg=w_reg,
         lr=lr,
         steps=steps,
         print_every=print_every,

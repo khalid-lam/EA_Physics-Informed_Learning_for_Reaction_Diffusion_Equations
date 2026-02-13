@@ -2,25 +2,7 @@
 import torch
 
 from losses import pde_residual_loss, energy_loss, dirichlet_bc_loss
-
-
-def l2_regularization(model) -> torch.Tensor:
-    """
-    Simple L2 regularization term: sum ||theta||^2 over all parameters.
-    """
-    reg = torch.tensor(0.0, device=next(model.parameters()).device)
-    for p in model.parameters():
-        reg = reg + torch.sum(p ** 2)
-    return reg
-
-
-def data_mse_loss(model, x_data: torch.Tensor, u_data: torch.Tensor) -> torch.Tensor:
-    """
-    Supervised data fitting term: MSE(model(x_data), u_data).
-    """
-    pred = model(x_data)
-    return torch.mean((pred - u_data) ** 2)
-
+from losses import l2_regularization, data_loss as data_mse_loss
 
 def train(
     model,
