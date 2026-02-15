@@ -2,6 +2,7 @@
 import torch
 
 import sys
+import argparse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]   # repo root
@@ -10,6 +11,16 @@ sys.path.insert(0, str(SRC))
 
 
 from data_loader import load_torch_dataset, train_val_split
+
+
+def find_latest_data(root, patterns=("*.pt")):
+    data_dir = root / "data"
+    candidates = []
+    for pat in patterns:
+        candidates.extend(data_dir.glob(pat))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: p.stat().st_mtime)
 from sampling import sample_uniform_interior, sample_uniform_boundary, make_dirichlet_bc
 from equations import PoissonEquation, FisherKPPStationaryEquation
 from models import MLPModel, LinearFourierModel
@@ -18,6 +29,17 @@ from metrics import summarize_errors
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Run experiment")
+    parser.add_argument("--data-path", type=Path, default=None, help="Path to dataset (.pt).")
+    args = parser.parse_args()
+
+    data_path = args.data_path
+    if data_path is None:
+        data_path = find_latest_data(ROOT)
+        if data_path is None:
+            raise FileNotFoundError("No .pt or .npz files found in data/; pass --data-path")
+    print(f"Using data file: {data_path}")
+
     torch.manual_seed(0)
     device = torch.device("cpu")
     dtype = torch.float32
@@ -25,7 +47,6 @@ def main():
     # -------------------------
     # Experiment configuration
     # -------------------------
-    data_path = ROOT / "data" / "logistic_mu0.100_sx50_sy50_coef2.667.pt"
     normalize_to_unit = True
 
     equation_name = "fisher"  # "poisson" or "fisher"
