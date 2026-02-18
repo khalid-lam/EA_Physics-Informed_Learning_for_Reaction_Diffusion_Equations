@@ -144,7 +144,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             w_pde=1.0,
             w_bc=10,
             w_data=0.0,
-            w_reg=1e-6,
+            w_reg=1e-3,
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
@@ -158,7 +158,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             w_pde=1.0,
             w_bc=10,
             w_data=0.0,
-            w_reg=1e-6,
+            w_reg=1e-3,
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
@@ -182,8 +182,8 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="mlp",
             use_energy=False,
             w_pde=1.0,
-            w_bc=0.0,
-            w_data=1.0,
+            w_bc=1.0,
+            w_data=0.5,
             w_reg=0.0,
             n_interior=8000,
             n_boundary=0,
@@ -200,8 +200,8 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="mlp",
             use_energy=False,
             w_pde=1.0,
-            w_bc=0.0,
-            w_data=1.0,
+            w_bc=1.0,
+            w_data=0.5,
             w_reg=1e-6,
             n_interior=8000,
             n_boundary=0,
@@ -218,7 +218,7 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="mlp",
             use_energy=True,
             w_pde=1.0,
-            w_bc=0.0,
+            w_bc=1.0,
             w_data=1.0,
             w_reg=0.0,
             n_interior=8000,
@@ -236,7 +236,7 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="fourier",
             use_energy=False,
             w_pde=1.0,
-            w_bc=0.0,
+            w_bc=1.0,
             w_data=1.0,
             w_reg=0.0,
             n_interior=8000,
@@ -254,7 +254,7 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="fourier",
             use_energy=False,
             w_pde=1.0,
-            w_bc=0.0,
+            w_bc=1.0,
             w_data=1.0,
             w_reg=1e-6,
             n_interior=8000,
@@ -272,7 +272,7 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="fourier",
             use_energy=True,
             w_pde=1.0,
-            w_bc=0.0,
+            w_bc=1.0,
             w_data=1.0,
             w_reg=0.0,
             n_interior=8000,
@@ -291,7 +291,7 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="mlp",
             use_energy=False,
             w_pde=1.0,
-            w_bc=0.0,
+            w_bc=1.0,
             w_data=0.0,
             w_reg=0.0,
             n_interior=8000,
@@ -306,7 +306,7 @@ def create_fisher_configs() -> list[ExperimentConfig]:
             model_name="fourier",
             use_energy=False,
             w_pde=1.0,
-            w_bc=0.0,
+            w_bc=1.0,
             w_data=0.0,
             w_reg=0.0,
             n_interior=8000,
@@ -413,3 +413,9 @@ def run_single_experiment(
         out["metrics_val"] = summarize_errors(u_pred_val, val_ds.u)
     
     return out
+
+# Provide a module-level default mapping for convenience (e.g., notebooks)
+try:
+    model_factories = create_model_factory(torch.device("cpu"), torch.float32)
+except Exception:
+    model_factories = {}
