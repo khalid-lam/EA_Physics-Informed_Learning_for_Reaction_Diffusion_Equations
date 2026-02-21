@@ -44,7 +44,7 @@ class ExperimentConfig:
     noise_level: float = 0.05
     
     # Training hyperparameters
-    lr: float = 1e-3
+    lr: float = 1e-4
     steps: int = 2000
     print_every: int = 200
 
@@ -65,7 +65,7 @@ def create_model_factory(device: torch.device, dtype: torch.dtype) -> Dict[str, 
         ).to(device),
         'fourier': lambda: LinearFourierModel(
             input_dim=2,
-            max_freq=8
+            max_freq=20
         ).to(device),
     }
 
@@ -91,6 +91,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         ExperimentConfig(
@@ -105,6 +106,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         ExperimentConfig(
@@ -119,6 +121,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         ExperimentConfig(
@@ -133,6 +136,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         # Regularization variants
@@ -148,6 +152,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         ExperimentConfig(
@@ -162,6 +167,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
     ]

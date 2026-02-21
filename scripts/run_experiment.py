@@ -180,6 +180,7 @@ def main():
         lr=lr,
         steps=steps,
         print_every=print_every,
+        record_grad_norms=True,
     )
 
     # -------------------------

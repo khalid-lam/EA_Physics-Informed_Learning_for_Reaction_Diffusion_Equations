@@ -25,6 +25,7 @@ def train(
     lr: float = 1e-3,
     steps: int = 2000,
     print_every: int = 200,
+    record_grad_norms: bool = False,
 ) -> dict:
     """
     Train a model with Adam.
@@ -48,6 +49,7 @@ def train(
         "loss_bc": [],
         "loss_data": [],
         "loss_reg": [],
+        "grad_norm": [] if record_grad_norms else [],
     }
 
     for step in range(1, steps + 1):
@@ -81,6 +83,15 @@ def train(
         ltot = w_pde * lpde + w_bc * lbc + w_data * ldata + w_reg * lreg
 
         ltot.backward()
+        # Optional: record gradient norm for diagnostics
+        if record_grad_norms:
+            total_norm_sq = 0.0
+            for p in model.parameters():
+                if p.grad is not None:
+                    total_norm_sq += float((p.grad.detach() ** 2).sum().item())
+            grad_norm = float(total_norm_sq ** 0.5)
+        else:
+            grad_norm = 0.0
         opt.step()
 
         # Log
@@ -89,7 +100,8 @@ def train(
         history["loss_bc"].append(lbc.detach().item())
         history["loss_data"].append(ldata.detach().item())
         history["loss_reg"].append(lreg.detach().item())
-
+        if record_grad_norms:
+            history["grad_norm"].append(grad_norm)
         if print_every > 0 and (step % print_every == 0 or step == 1 or step == steps):
             print(
                 f"[step {step:5d}] "
