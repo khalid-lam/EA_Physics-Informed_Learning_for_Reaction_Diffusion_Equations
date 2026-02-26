@@ -69,7 +69,7 @@ def create_model_factory(device: torch.device, dtype: torch.dtype) -> Dict[str, 
         ).to(device),
         'fourier': lambda: LinearFourierModel(
             input_dim=2,
-            max_freq=8
+            max_freq=20
         ).to(device),
     }
 
@@ -94,8 +94,13 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             w_reg=0.0,
             n_interior=6000,
             n_boundary=1200,
+<<<<<<< HEAD
             steps=20,
             batch_size=64,
+=======
+            steps=2000,
+            lr=1e-4,
+>>>>>>> 2d5edcaa4a8835b3cad68ce5662813c416ee61c4
             print_every=400,
         ),
         ExperimentConfig(
@@ -110,6 +115,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         ExperimentConfig(
@@ -124,6 +130,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         ExperimentConfig(
@@ -138,6 +145,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         # Regularization variants
@@ -153,6 +161,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
         ExperimentConfig(
@@ -167,6 +176,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             n_interior=6000,
             n_boundary=1200,
             steps=2000,
+            lr=1e-4,
             print_every=400,
         ),
     ]

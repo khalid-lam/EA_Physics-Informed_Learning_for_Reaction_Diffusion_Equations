@@ -25,9 +25,13 @@ def train(
     lr: float = 1e-3,
     steps: int = 2000,
     print_every: int = 200,
+<<<<<<< HEAD
     # Mini-batch / SGD controls
     batch_size: int | None = None,
     shuffle: bool = True,
+=======
+    record_grad_norms: bool = False,
+>>>>>>> 2d5edcaa4a8835b3cad68ce5662813c416ee61c4
 ) -> dict:
     """
     Train a model with Adam.
@@ -62,6 +66,7 @@ def train(
         "loss_bc": [],
         "loss_data": [],
         "loss_reg": [],
+        "grad_norm": [] if record_grad_norms else [],
     }
 
     # Determine whether we're doing full-batch or mini-batch SGD.
@@ -95,6 +100,7 @@ def train(
             else:
                 ldata = data_mse_loss(model, x_data, u_data)
 
+<<<<<<< HEAD
             # Reg part
             if w_reg == 0.0:
                 lreg = torch.tensor(0.0, device=x_interior.device, dtype=x_interior.dtype)
@@ -190,6 +196,37 @@ def train(
                         f"reg={history['loss_reg'][-1]:.6e} "
                         f"epoch={epoch}/{steps}"
                     )
+=======
+        ltot.backward()
+        # Optional: record gradient norm for diagnostics
+        if record_grad_norms:
+            total_norm_sq = 0.0
+            for p in model.parameters():
+                if p.grad is not None:
+                    total_norm_sq += float((p.grad.detach() ** 2).sum().item())
+            grad_norm = float(total_norm_sq ** 0.5)
+        else:
+            grad_norm = 0.0
+        opt.step()
+
+        # Log
+        history["loss_total"].append(ltot.detach().item())
+        history["loss_pde"].append(lpde.detach().item())
+        history["loss_bc"].append(lbc.detach().item())
+        history["loss_data"].append(ldata.detach().item())
+        history["loss_reg"].append(lreg.detach().item())
+        if record_grad_norms:
+            history["grad_norm"].append(grad_norm)
+        if print_every > 0 and (step % print_every == 0 or step == 1 or step == steps):
+            print(
+                f"[step {step:5d}] "
+                f"total={history['loss_total'][-1]:.6e} "
+                f"pde={history['loss_pde'][-1]:.6e} "
+                f"bc={history['loss_bc'][-1]:.6e} "
+                f"data={history['loss_data'][-1]:.6e} "
+                f"reg={history['loss_reg'][-1]:.6e}"
+            )
+>>>>>>> 2d5edcaa4a8835b3cad68ce5662813c416ee61c4
 
     return history
 

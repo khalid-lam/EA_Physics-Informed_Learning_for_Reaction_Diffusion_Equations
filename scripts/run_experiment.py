@@ -184,7 +184,11 @@ def main():
         lr=lr,
         steps=steps,
         print_every=print_every,
+<<<<<<< HEAD
         batch_size=batch_size,
+=======
+        record_grad_norms=True,
+>>>>>>> 2d5edcaa4a8835b3cad68ce5662813c416ee61c4
     )
 
     # -------------------------
