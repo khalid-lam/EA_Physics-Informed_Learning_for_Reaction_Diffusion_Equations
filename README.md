@@ -1,6 +1,10 @@
 # PINNs for PDEs  
 ### Physics-Informed Neural Networks for Poisson and Fisher–KPP Equations
 
+This code now supports **mini-batch training** on interior collocation points. Use the
+`batch_size` parameter (or `--batch-size` CLI flag) to perform SGD. When `batch_size` is set,
+`steps` becomes the number of epochs and the dataset is shuffled each epoch so every point is seen once.
+
 This repository contains a modular implementation of learning-based methods
 for solving partial differential equations (PDEs), including:
 

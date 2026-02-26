@@ -31,9 +31,11 @@ from metrics import summarize_errors
 def main():
     parser = argparse.ArgumentParser(description="Run experiment")
     parser.add_argument("--data-path", type=Path, default=None, help="Path to dataset (.pt).")
+    parser.add_argument("--batch-size", type=int, default=None, help="Mini-batch size for interior points (None=full batch). When set, --steps becomes number of epochs.")
     args = parser.parse_args()
 
     data_path = args.data_path
+    batch_size = args.batch_size
     if data_path is None:
         data_path = find_latest_data(ROOT)
         if data_path is None:
@@ -111,6 +113,8 @@ def main():
     print(f"Boundary collocation:    {n_boundary}")
     print(f"Validation points:       {val_ds.x.shape[0]} (clean)")
     print(f"Data/Collocation ratio:  {n_data_points / (n_interior + n_boundary):.1%}")
+    if batch_size is not None:
+        print(f"Batch size:              {batch_size} (epochs={steps})")
 
     # Domain bounds for sampling:
     d = train_ds.x.shape[1]
@@ -180,6 +184,7 @@ def main():
         lr=lr,
         steps=steps,
         print_every=print_every,
+        batch_size=batch_size,
     )
 
     # -------------------------

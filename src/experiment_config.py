@@ -44,10 +44,14 @@ class ExperimentConfig:
     noise_level: float = 0.05
     
     # Training hyperparameters
-    lr: float = 1e-3
+    lr: float = 1e-4
     steps: int = 2000
     print_every: int = 200
-
+    
+    # Mini-batch training (SGD)
+    # batch_size: None (default) = full-batch training; steps = number of gradient updates
+    # batch_size: int < n_interior = mini-batch SGD; steps = number of epochs
+    batch_size: int | None = None
 
 def create_model_factory(device: torch.device, dtype: torch.dtype) -> Dict[str, Callable]:
     """
@@ -90,7 +94,8 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             w_reg=0.0,
             n_interior=6000,
             n_boundary=1200,
-            steps=2000,
+            steps=20,
+            batch_size=64,
             print_every=400,
         ),
         ExperimentConfig(
@@ -381,6 +386,7 @@ def run_single_experiment(
         lr=config.lr,
         steps=config.steps,
         print_every=config.print_every,
+        batch_size=config.batch_size,
     )
     
     # Evaluate on grid

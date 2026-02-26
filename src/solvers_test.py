@@ -49,7 +49,7 @@ def run_reference_checks():
     print(f"Grid MSE: {mse0:.6e}")
 
     # Train
-    _ = train(
+    history_full = train(
         model,
         eq,
         x_in,
@@ -62,6 +62,32 @@ def run_reference_checks():
         steps=1500,
         print_every=300,
     )
+
+    # ------------------
+    # Mini-batch sanity check
+    # ------------------
+    # rerun with a batch size to ensure behavior matches expectations
+    model2 = MLPModel(input_dim=2, hidden_dim=32, num_hidden_layers=3, activation="tanh")
+    batch_size = 64
+    epochs = 5
+    history_batch = train(
+        model2,
+        eq,
+        x_in,
+        x_boundary=x_b,
+        u_boundary=u_b,
+        use_energy=False,
+        w_pde=1.0,
+        w_bc=10.0,
+        lr=1e-3,
+        steps=epochs,          # interpreted as epochs when batch_size is set
+        batch_size=batch_size,
+        print_every=300,
+    )
+
+    # make sure we got the expected number of gradient updates
+    expected_updates = epochs * ((x_in.size(0) + batch_size - 1) // batch_size)
+    assert len(history_batch["loss_total"]) == expected_updates
 
     # Post-train MSE
     with torch.no_grad():
