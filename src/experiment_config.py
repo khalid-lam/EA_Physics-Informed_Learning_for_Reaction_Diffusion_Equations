@@ -52,13 +52,15 @@ class ExperimentConfig:
     # batch_size: None (default) = full-batch training; steps = number of gradient updates
     # batch_size: int < n_interior = mini-batch SGD; steps = number of epochs
     batch_size: int | None = None
+    # Diagnostics
+    record_grad_norms: bool = False
 
 def create_model_factory(device: torch.device, dtype: torch.dtype) -> Dict[str, Callable]:
     """
     Returns a dict of model factory functions.
     Each factory takes no arguments and returns an initialized model on the given device/dtype.
     """
-    from models import MLPModel, LinearFourierModel
+    from models import MLPModel, LinearFourierModel, ResNetPINN
     
     return {
         'mlp': lambda: MLPModel(
@@ -71,6 +73,11 @@ def create_model_factory(device: torch.device, dtype: torch.dtype) -> Dict[str, 
             input_dim=2,
             max_freq=20
         ).to(device),
+        'ResNet': lambda: ResNetPINN(
+            input_dim = 2,
+            width = 128,
+            num_blocks = 6,
+            activation = "relu").to(device)
     }
 
 
@@ -84,6 +91,22 @@ def create_poisson_configs() -> list[ExperimentConfig]:
     return [
         # No regularization variants
         ExperimentConfig(
+            name="ResNet residual no-reg",
+            equation_name="poisson",
+            model_name="ResNet",
+            use_energy=False,
+            w_pde=1.0,
+            w_bc=10, 
+            w_data=0.0,
+            w_reg=0.0,
+            n_interior=6000,
+            n_boundary=1200,
+            steps=20,
+            batch_size=64,
+            print_every=400,
+            record_grad_norms=True,
+        ),
+        ExperimentConfig(
             name="MLP residual no-reg",
             equation_name="poisson",
             model_name="mlp",
@@ -94,13 +117,8 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             w_reg=0.0,
             n_interior=6000,
             n_boundary=1200,
-<<<<<<< HEAD
             steps=20,
             batch_size=64,
-=======
-            steps=2000,
-            lr=1e-4,
->>>>>>> 2d5edcaa4a8835b3cad68ce5662813c416ee61c4
             print_every=400,
         ),
         ExperimentConfig(
@@ -396,7 +414,8 @@ def run_single_experiment(
         lr=config.lr,
         steps=config.steps,
         print_every=config.print_every,
-        batch_size=config.batch_size,
+            batch_size=config.batch_size,
+            record_grad_norms=getattr(config, 'record_grad_norms', False),
     )
     
     # Evaluate on grid
