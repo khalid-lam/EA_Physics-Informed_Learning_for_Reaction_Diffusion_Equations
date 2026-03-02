@@ -68,7 +68,7 @@ class ResidualBlock(nn.Module):
         self.activation = activation()
 
         # Optional learnable residual scaling (very useful for PINNs)
-        self.alpha = nn.Parameter(torch.tensor(0.1))
+        self.alpha = nn.Parameter(torch.tensor(1.0))
 
         self._init_weights()
 
@@ -82,9 +82,8 @@ class ResidualBlock(nn.Module):
         residual = x
         out = self.activation(self.linear1(x))
         out = self.linear2(out)
-        out = residual + self.alpha * out
-        return self.activation(out)
-    
+        return residual + self.alpha * out
+        
 # ---------------------------------------------------
 # ResNet PINN
 # ---------------------------------------------------
@@ -144,7 +143,7 @@ class ResNetPINN(nn.Module):
         out = self.activation(self.input_layer(x))
 
         for block in self.blocks:
-            out = block(out)
+            out = self.activation(block(out))
 
         return self.output_layer(out)
 
@@ -170,48 +169,31 @@ class LinearFourierModel(torch.nn.Module):
     include_constant : bool
         Whether to include a constant basis function.
     """
-
-    def __init__(self, input_dim: int, max_freq: int = 3, include_constant: bool = True):
+    def __init__(self, input_dim, max_freq=3, include_constant=True):
         super().__init__()
         self.input_dim = input_dim
         self.max_freq = max_freq
         self.include_constant = include_constant
 
-        # Build frequency vectors k in N^d with components in [0, ..., max_freq]
-        grids = [torch.arange(0, max_freq + 1) for _ in range(input_dim)]
+        # symmetric frequencies
+        grids = [torch.arange(-max_freq, max_freq + 1) for _ in range(input_dim)]
         mesh = torch.meshgrid(*grids, indexing="ij")
-        k = torch.stack([m.reshape(-1) for m in mesh], dim=1)  # (M, d)
+        k = torch.stack([m.reshape(-1) for m in mesh], dim=1)
 
-        # Mask out the zero vector (0,0,...,0) for trig terms
         mask_nonzero = (k != 0).any(dim=1)
-        self.register_buffer("k", k[mask_nonzero])  # (K, d)
+        self.register_buffer("k", k[mask_nonzero].float())
 
-
-        # Number of basis functions:
-        # - optional constant
-        # - cos for each k
-        # - sin for each k
         K = self.k.shape[0]
         n_basis = (1 if include_constant else 0) + 2 * K
 
-        # Trainable coefficients (linear parameters)
-        self.coeffs = torch.nn.Parameter(torch.zeros(n_basis, 1))
+        self.coeffs = nn.Parameter(0.01 * torch.randn(n_basis, 1))
 
-    def num_basis(self) -> int:
-        return self.coeffs.shape[0]
-
-    def features(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Build the design matrix Phi(x) of shape (N, n_basis).
-        """
-        # x: (N, d), k: (K, d)
-        # Compute 2π * (x @ k^T) -> (N, K)
-        k = self.k.to(dtype=x.dtype, device=x.device)
+    def features(self, x):
+        k = self.k.to(x.device, x.dtype)
         phase = 2.0 * torch.pi * (x @ k.T)
 
-
-        cos_part = torch.cos(phase)  # (N, K)
-        sin_part = torch.sin(phase)  # (N, K)
+        cos_part = torch.cos(phase)
+        sin_part = torch.sin(phase)
 
         feats = []
         if self.include_constant:
@@ -219,8 +201,8 @@ class LinearFourierModel(torch.nn.Module):
         feats.append(cos_part)
         feats.append(sin_part)
 
-        return torch.cat(feats, dim=1)  # (N, n_basis)
+        return torch.cat(feats, dim=1)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        Phi = self.features(x)  # (N, n_basis)
-        return Phi @ self.coeffs  # (N, 1)
+    def forward(self, x):
+        Phi = self.features(x)
+        return Phi @ self.coeffs

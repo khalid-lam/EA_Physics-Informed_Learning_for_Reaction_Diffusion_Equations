@@ -147,8 +147,9 @@ def create_poisson_configs() -> list[ExperimentConfig]:
             w_reg=0.0,
             n_interior=6000,
             n_boundary=1200,
-            steps=2000,
-            lr=1e-4,
+            steps=200,
+            batch_size=128,
+            lr=1e-5,
             print_every=400,
         ),
         ExperimentConfig(
