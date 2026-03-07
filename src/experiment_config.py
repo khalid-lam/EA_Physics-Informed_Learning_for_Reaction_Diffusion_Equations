@@ -9,7 +9,7 @@ Defines:
 """
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple, List
 import torch
 from metrics import summarize_errors
 
@@ -51,7 +51,7 @@ class ExperimentConfig:
     # Mini-batch training (SGD)
     # batch_size: None (default) = full-batch training; steps = number of gradient updates
     # batch_size: int < n_interior = mini-batch SGD; steps = number of epochs
-    batch_size: int | None = None
+    batch_size: Optional[int] = None
     # Diagnostics
     record_grad_norms: bool = False
 
@@ -81,7 +81,7 @@ def create_model_factory(device: torch.device, dtype: torch.dtype) -> Dict[str, 
     }
 
 
-def create_poisson_configs() -> list[ExperimentConfig]:
+def create_poisson_configs() -> List[ExperimentConfig]:
     """
     Curated experiment configs for Poisson equation.
     
@@ -201,7 +201,7 @@ def create_poisson_configs() -> list[ExperimentConfig]:
     ]
 
 
-def create_fisher_configs() -> list[ExperimentConfig]:
+def create_fisher_configs() -> List[ExperimentConfig]:
     """
     Curated experiment configs for Fisher-KPP / Logistic dataset.
     

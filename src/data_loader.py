@@ -1,6 +1,7 @@
 # src/data_loader.py
 import torch
 from dataclasses import dataclass
+from typing import Tuple
 
 
 @dataclass
@@ -24,7 +25,7 @@ def train_val_split(
     *,
     shuffle: bool = True,
     seed: int = 0,
-) -> tuple[Dataset, Dataset]:
+) -> Tuple[Dataset, Dataset]:
     """
     Split dataset into train/val subsets.
 
@@ -65,7 +66,7 @@ def ensure_column(u: torch.Tensor) -> torch.Tensor:
 def normalize_coords_to_unit_interval(
     x: torch.Tensor,
     eps: float = 1e-12,
-) -> tuple[torch.Tensor, dict]:
+) -> Tuple[torch.Tensor, dict]:
     """
     Normalize each coordinate independently to [0, 1] using min-max scaling.
 
@@ -101,7 +102,7 @@ def load_torch_dataset(
     *,
     normalize_to_unit: bool = True,
     eps: float = 1e-12,
-) -> tuple[Dataset, dict]:
+) -> Tuple[Dataset, dict]:
     """
     Load a dataset saved with torch.save({...}, path).
 

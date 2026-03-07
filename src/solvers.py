@@ -1,5 +1,6 @@
 # src/solvers.py
 import torch
+from typing import Optional
 
 from losses import pde_residual_loss, energy_loss, dirichlet_bc_loss
 from losses import l2_regularization, data_loss as data_mse_loss
@@ -8,12 +9,12 @@ def train(
     model,
     equation,
     x_interior: torch.Tensor,
-    x_boundary: torch.Tensor | None = None,
-    u_boundary: torch.Tensor | None = None,
+    x_boundary: Optional[torch.Tensor] = None,
+    u_boundary: Optional[torch.Tensor] = None,
     *,
     # Optional supervised data term
-    x_data: torch.Tensor | None = None,
-    u_data: torch.Tensor | None = None,
+    x_data: Optional[torch.Tensor] = None,
+    u_data: Optional[torch.Tensor] = None,
     # Objective choice
     use_energy: bool = False,
     # Weights
@@ -26,7 +27,7 @@ def train(
     steps: int = 2000,
     print_every: int = 200,
     # Mini-batch / SGD controls
-    batch_size: int | None = None,
+    batch_size: Optional[int] = None,
     shuffle: bool = True,
     # diagnostics
     record_grad_norms: bool = False,

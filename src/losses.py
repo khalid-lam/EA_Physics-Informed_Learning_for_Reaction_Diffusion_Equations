@@ -1,6 +1,7 @@
 # src/losses.py
 import torch
 from operators import gradient, laplacian
+from typing import Tuple, Optional
 
 
 def mse(x: torch.Tensor) -> torch.Tensor:
@@ -89,18 +90,18 @@ def l2_regularization(model) -> torch.Tensor:
 def total_loss(
     model,
     equation,
-    x_interior: torch.Tensor | None = None,
-    x_boundary: torch.Tensor | None = None,
-    u_boundary: torch.Tensor | None = None,
-    x_data: torch.Tensor | None = None,
-    u_data: torch.Tensor | None = None,
+    x_interior: Optional[torch.Tensor] = None,
+    x_boundary: Optional[torch.Tensor] = None,
+    u_boundary: Optional[torch.Tensor] = None,
+    x_data: Optional[torch.Tensor] = None,
+    u_data: Optional[torch.Tensor] = None,
     *,
     use_energy: bool = False,
     w_pde: float = 1.0,
     w_bc: float = 1.0,
     w_data: float = 1.0,
     w_reg: float = 0.0,
-) -> tuple[torch.Tensor, dict]:
+) -> Tuple[torch.Tensor, dict]:
     """
     Total loss with up to 4 weighted terms:
         L = w_pde*L_pde + w_bc*L_bc + w_data*L_data + w_reg*L_reg
