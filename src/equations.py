@@ -82,3 +82,42 @@ class FisherKPPStationaryEquation:
         grad_sq = torch.sum(grad_u ** 2, dim=1, keepdim=True)
         potential = (u ** 2) / 2.0 - (u ** 3) / 3.0
         return 0.5 * D * grad_sq - r * potential
+
+
+@dataclass(frozen=True)
+class AllenCahnEquation:
+    """
+    Stationary Allen–Cahn equation:
+
+        -ε² Δu(x) + u(x)^3 - u(x) = 0
+
+    This is the Euler–Lagrange equation for the energy functional with double-well potential W(u) = (u²-1)²/4.
+
+    Parameters
+    ----------
+    epsilon : float
+        Interface parameter (small positive value).
+    """
+
+    epsilon: float
+    name: str = "allen_cahn"
+
+    def residual(self, x: torch.Tensor, u: torch.Tensor, lap_u: torch.Tensor) -> torch.Tensor:
+        """
+        Strong-form residual:
+            R(x) = -ε² Δu(x) + u(x)^3 - u(x)
+        """
+        eps_sq = torch.as_tensor(self.epsilon ** 2, dtype=u.dtype, device=u.device)
+        return -eps_sq * lap_u + u ** 3 - u
+
+    def energy_density(self, x: torch.Tensor, u: torch.Tensor, grad_u: torch.Tensor) -> torch.Tensor:
+        """
+        Energy density for Allen–Cahn:
+            e(x) = (ε²/2) * |∇u(x)|^2 + W(u(x))
+
+        where W(u) = (u²-1)²/4 is the double-well potential.
+        """
+        eps_sq = torch.as_tensor(self.epsilon ** 2, dtype=u.dtype, device=u.device)
+        grad_sq = torch.sum(grad_u ** 2, dim=1, keepdim=True)
+        potential = ((u ** 2 - 1.0) ** 2) / 4.0
+        return 0.5 * eps_sq * grad_sq + potential

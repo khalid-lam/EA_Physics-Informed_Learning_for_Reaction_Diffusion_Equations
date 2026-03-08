@@ -68,6 +68,67 @@ class Logistic_solver:
     #########################
 
 
+class AllenCahnSolver:
+    def __init__(self, epsilon, size_x, size_y):
+        self.epsilon = epsilon
+        self.tot_size = size_x * size_y
+        self.size_x = size_x
+        self.size_y = size_y
+    
+    def residual(self, vect):
+        """
+        From a candidate value function named vect, compute the residual of the Allen-Cahn equation.
+        
+        ε² Δu - (u³ - u) = 0
+        """
+        return ((self.epsilon ** 2) * Laplacian(vect, self.size_x, self.size_y)
+                - (vect ** 3 - vect))
+    
+    def jacobian(self, vect):
+        """
+        Compute the jacobian of the differential operator applied in residual
+        """
+        return ((self.epsilon ** 2) * Laplacian_mat(self.size_x, self.size_y)
+                - sp.diags(3 * vect ** 2 - 1))
+    
+    def solve_lin_allen_cahn(self, theta, additional_RHS):
+        """
+        This solves the linearized Allen-Cahn equation in the direction delta_u
+        with an additional_RHS as the right-hand side.
+        """
+        return splin.spsolve(self.jacobian(theta), additional_RHS)
+    
+    def solve_allen_cahn(self, initial_guess=None, nb_max_newton_iter=100, threshold=1e-8):
+        """
+        This solves the Allen-Cahn equation.
+        
+        The method used here is a Newton method, using the method solve_lin_allen_cahn.
+        """
+        if initial_guess is None:
+            # Do not start from the exact zero state: u=0 is already a valid
+            # stationary solution and Newton would terminate immediately.
+            # Use a deterministic non-constant periodic profile to target a
+            # non-trivial branch.
+            x = np.linspace(0.0, 1.0, self.size_x, endpoint=False)
+            y = np.linspace(0.0, 1.0, self.size_y, endpoint=False)
+            X, Y = np.meshgrid(x, y, indexing="ij")
+            profile = np.sin(2.0 * np.pi * X) + 0.5 * np.cos(2.0 * np.pi * Y)
+            output = 0.9 * np.tanh(profile / max(self.epsilon, 1e-8))
+            output = output.reshape(-1)
+        else:
+            output = initial_guess.copy()
+        for i in range(nb_max_newton_iter):
+            residual = self.residual(output)
+            norm_residual = np.sqrt(np.mean(residual * residual))
+            if norm_residual < threshold:
+                return output
+            output -= self.solve_lin_allen_cahn(output, residual)
+        print('In solve_allen_cahn, no convergence after %d Newton iterations, the residual norm is %.2e' % (nb_max_newton_iter,
+                                                                                            norm_residual))
+        raise NewtonException()
+        return output
+
+
 def Laplacian(vect,size_x,size_y):
     return ((size_x*size_x)
             * (left_neighboor(vect,size_x,size_y)
@@ -214,4 +275,41 @@ if __name__ == "__main__":
             "coef_resources": coef_resources,
         },
         str(base) + ".pt",
+    )
+
+    # Generate Allen-Cahn data
+    epsilon = 0.1
+    allen_cahn_solver = AllenCahnSolver(epsilon, size_x, size_y)
+    u_allen_cahn = allen_cahn_solver.solve_allen_cahn()
+
+    fig2 = plt.figure(figsize=(15,12))
+    ax2 = fig2.add_subplot(projection='3d')
+    ax2.plot_surface(x_grid, y_grid, u_allen_cahn.reshape(size_x, size_y))
+
+    U_ac = u_allen_cahn.reshape(-1, 1)
+
+    tag_ac = f"eps{epsilon:.3f}_sx{size_x}_sy{size_y}"
+    base_ac = out_dir / f"allen_cahn_{tag_ac}"
+
+    plt.savefig(str(base_ac) + ".png", dpi=200)
+    plt.close()
+
+    np.savez(
+        str(base_ac) + ".npz",
+        x=X,
+        u=U_ac,
+        size_x=size_x,
+        size_y=size_y,
+        epsilon=epsilon,
+    )
+
+    torch.save(
+        {
+            "x": torch.tensor(X, dtype=torch.float32),
+            "u": torch.tensor(U_ac, dtype=torch.float32),
+            "size_x": size_x,
+            "size_y": size_y,
+            "epsilon": epsilon,
+        },
+        str(base_ac) + ".pt",
     )

@@ -22,7 +22,7 @@ def find_latest_data(root, patterns=("*.pt")):
         return None
     return max(candidates, key=lambda p: p.stat().st_mtime)
 from sampling import sample_uniform_interior, sample_uniform_boundary, make_dirichlet_bc
-from equations import PoissonEquation, FisherKPPStationaryEquation
+from equations import PoissonEquation, FisherKPPStationaryEquation, AllenCahnEquation
 from models import MLPModel, LinearFourierModel
 from solvers import train
 from metrics import summarize_errors
@@ -142,6 +142,8 @@ def main():
         equation = PoissonEquation(f=f)
     elif equation_name == "fisher":
         equation = FisherKPPStationaryEquation(D=1.0, r=1.0)
+    elif equation_name == "allen_cahn":
+        equation = AllenCahnEquation(epsilon=0.1)
     else:
         raise ValueError(f"Unknown equation_name: {equation_name}")
 
@@ -184,11 +186,8 @@ def main():
         lr=lr,
         steps=steps,
         print_every=print_every,
-<<<<<<< HEAD
         batch_size=batch_size,
-=======
         record_grad_norms=True,
->>>>>>> 2d5edcaa4a8835b3cad68ce5662813c416ee61c4
     )
 
     # -------------------------
