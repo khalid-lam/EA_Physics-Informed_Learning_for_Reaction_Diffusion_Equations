@@ -46,7 +46,12 @@ class PoissonEquation:
 @dataclass(frozen=True)
 class FisherKPPStationaryEquation:
     """
-    Stationary Fisher–KPP reaction–diffusion equation:
+    Stationary Fisher–KPP / Logistic reaction–diffusion equation:
+
+        -D Δu(x) - u(x) (R(x) - u(x)) = 0
+
+    If ``R_field`` is not provided, the class falls back to the classical
+    constant carrying-capacity form:
 
         -D Δu(x) - r u(x) (1 - u(x)) = 0
 
@@ -57,29 +62,44 @@ class FisherKPPStationaryEquation:
     """
 
     D: float
-    r: float
+    r: float = 1.0
+    R_field: object = None
     name: str = "fisher_kpp_stationary"
 
     def residual(self, x: torch.Tensor, u: torch.Tensor, lap_u: torch.Tensor) -> torch.Tensor:
         """
         Strong-form residual:
+            R(x) = -D Δu(x) - u(x) (R(x) - u(x))
+
+        If R_field is None, uses the fallback:
             R(x) = -D Δu(x) - r u(x) (1 - u(x))
         """
         D = torch.as_tensor(self.D, dtype=u.dtype, device=u.device)
+        if self.R_field is not None:
+            R = self.R_field(x).reshape_as(u)
+            return -D * lap_u - u * (R - u)
         r = torch.as_tensor(self.r, dtype=u.dtype, device=u.device)
         return -D * lap_u - r * u * (1.0 - u)
 
     def energy_density(self, x: torch.Tensor, u: torch.Tensor, grad_u: torch.Tensor) -> torch.Tensor:
         """
         Energy density whose Euler–Lagrange equation is:
-            -D Δu - r u(1-u) = 0
+            -D Δu - u(R-u) = 0
 
-        e(x) = (D/2)*|∇u|^2 - r*(u^2/2 - u^3/3)
+        Spatially varying carrying capacity form:
+            e(x) = (D/2)|∇u|^2 - (R(x)u^2/2 - u^3/3)
+
+        Fallback constant-r form:
+            e(x) = (D/2)|∇u|^2 - r*(u^2/2 - u^3/3)
         """
         D = torch.as_tensor(self.D, dtype=u.dtype, device=u.device)
-        r = torch.as_tensor(self.r, dtype=u.dtype, device=u.device)
 
         grad_sq = torch.sum(grad_u ** 2, dim=1, keepdim=True)
+        if self.R_field is not None:
+            R = self.R_field(x).reshape_as(u)
+            return 0.5 * D * grad_sq - (R * (u ** 2) / 2.0 - (u ** 3) / 3.0)
+
+        r = torch.as_tensor(self.r, dtype=u.dtype, device=u.device)
         potential = (u ** 2) / 2.0 - (u ** 3) / 3.0
         return 0.5 * D * grad_sq - r * potential
 
